@@ -78,7 +78,7 @@ const main = async () => {
   });
 };
 
-setTimeout(() => main(), 10000);
+setInterval(() => main(), 10000);
 
 app.get("/", (req, res) => {});
 
