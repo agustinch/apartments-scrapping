@@ -69,6 +69,9 @@ const main = async () => {
     scrapping(
       "https://clasificados.lavoz.com.ar/inmuebles/todo?list=true&cantidad-de-dormitorios%5B0%5D=1-dormitorio&operacion=alquileres&provincia=cordoba&ciudad=cordoba&barrio=centro"
     ),
+    scrapping(
+      "https://clasificados.lavoz.com.ar/inmuebles/todo?list=true&cantidad-de-dormitorios%5B0%5D=1-dormitorio&operacion=alquileres&provincia=cordoba&ciudad=cordoba&barrio=alberdi"
+    ),
   ]);
 
   const deptosSaved = await client.query("SELECT id from deptos");
@@ -106,7 +109,7 @@ const main = async () => {
   console.log(`${deptos.length} deptos encontrados`);
 };
 
-setInterval(() => main(), 10000);
+setInterval(() => main(), 60000);
 
 app.get("/", (req, res) => {});
 
