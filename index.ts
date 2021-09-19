@@ -4,7 +4,7 @@ import nodemailer from "nodemailer";
 require("dotenv").config();
 
 const hostname = "127.0.0.1";
-const port = 3000;
+const port = Number(process.env.PORT) || 5000;
 
 const app = express();
 
