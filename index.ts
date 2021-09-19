@@ -1,9 +1,21 @@
 import express from "express";
 import scrapeIt from "scrape-it";
 import nodemailer from "nodemailer";
+import { Client } from "pg";
+import format from "pg-format";
+
 require("dotenv").config();
 
-const port = Number(process.env.PORT) || 5000;
+const connectionString = process.env.CONNECT_URI;
+const client = new Client({
+  connectionString,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+client.connect();
+
+const port = Number(process.env.PORT) || 3000;
 
 const app = express();
 
@@ -13,6 +25,7 @@ interface ScrapResult {
   link: string;
   id: string;
 }
+
 const scrapping = (url: string): Promise<any> => {
   const list =
     ".clearfix > div > :nth-child(2) > div > .col-9 > :nth-child(3) > .flex-wrap > .col-12";
@@ -45,7 +58,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const main = async () => {
-  console.log("Running");
+  console.log("Running...");
   const result = await Promise.all([
     scrapping(
       "https://clasificados.lavoz.com.ar/inmuebles/todo?list=true&cantidad-de-dormitorios%5B0%5D=1-dormitorio&operacion=alquileres&provincia=cordoba&ciudad=cordoba&barrio%5B0%5D=general-paz&page=1"
@@ -58,9 +71,23 @@ const main = async () => {
     ),
   ]);
 
+  const deptosSaved = await client.query("SELECT id from deptos");
+  const deptosId = deptosSaved.rows.flatMap((r) => r.id);
   const deptos: ScrapResult[] = result
     .flatMap((o) => o.deptos)
-    .filter((o) => o.id);
+    .filter((o) => o.id && !deptosId.includes(o.id));
+
+  if (deptos.length === 0) {
+    console.log("Nada nuevo.");
+    return;
+  }
+
+  const deptosToInsert = deptos.map((d) => [d.id, d.title, d.link]);
+
+  await client.query(
+    format("INSERT INTO deptos (id, name, url) VALUES %L", deptosToInsert)
+  );
+
   const deptosList =
     "<div>" +
     deptos
@@ -72,13 +99,14 @@ const main = async () => {
 
   await transporter.sendMail({
     from: "Agu Bot", // sender address
-    to: "chg.agustin@gmail.com", // list of receivers
-    subject: "Nuevos deptos", // Subject line
+    to: process.env.EMAIL_TO, // list of receivers
+    subject: `${deptos.length} depto/s encontrado/s`, // Subject line
     html: deptosList, // html body
   });
+  console.log(`${deptos.length} deptos encontrados`);
 };
 
-// setInterval(() => main(), 10000);
+setInterval(() => main(), 10000);
 
 app.get("/", (req, res) => {});
 
