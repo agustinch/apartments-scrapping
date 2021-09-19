@@ -72,7 +72,7 @@ const main = async () => {
     "</div>";
   await transporter.sendMail({
     from: "Agu Bot", // sender address
-    to: "gonzalo.chiavassa@gmail.com", // list of receivers
+    to: "chg.agustin@gmail.com", // list of receivers
     subject: "Nuevos deptos", // Subject line
     html: deptosList, // html body
   });
