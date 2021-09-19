@@ -46,7 +46,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const main = async () => {
-  console.log(process.env.USER_EMAIL);
+  console.log("Running");
   const result = await Promise.all([
     scrapping(
       "https://clasificados.lavoz.com.ar/inmuebles/todo?list=true&cantidad-de-dormitorios%5B0%5D=1-dormitorio&operacion=alquileres&provincia=cordoba&ciudad=cordoba&barrio%5B0%5D=general-paz&page=1"
@@ -70,6 +70,7 @@ const main = async () => {
       })
       .join("") +
     "</div>";
+
   await transporter.sendMail({
     from: "Agu Bot", // sender address
     to: "chg.agustin@gmail.com", // list of receivers
@@ -77,7 +78,8 @@ const main = async () => {
     html: deptosList, // html body
   });
 };
-main();
+
+setTimeout(() => main(), 10000);
 
 app.get("/", (req, res) => {});
 
