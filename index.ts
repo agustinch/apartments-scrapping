@@ -3,7 +3,6 @@ import scrapeIt from "scrape-it";
 import nodemailer from "nodemailer";
 require("dotenv").config();
 
-const hostname = "127.0.0.1";
 const port = Number(process.env.PORT) || 5000;
 
 const app = express();
@@ -83,6 +82,6 @@ setTimeout(() => main(), 10000);
 
 app.get("/", (req, res) => {});
 
-app.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+app.listen(port, () => {
+  console.log(`Server running`);
 });

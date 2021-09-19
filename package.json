@@ -6,7 +6,8 @@
   "author": "agustinch <chg.agustin@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "nodemon ./index.ts"
+    "start": "nodemon ./index.ts",
+    "worker": "node index.js"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
