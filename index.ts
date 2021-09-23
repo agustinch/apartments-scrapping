@@ -89,7 +89,6 @@ const main = async () => {
     const deptos: ScrapResult[] = result
       .flatMap((o) => o.deptos)
       .filter((o) => o.id && !deptosId.includes(o.id));
-    console.log(result);
 
     if (deptos.length === 0) {
       console.log("Nada nuevo.");
@@ -121,7 +120,7 @@ const main = async () => {
   }
 };
 
-setInterval(async () => await main(), 6000);
+setInterval(async () => await main(), 60000);
 
 app.get("/", (req, res) => {
   res.send("Ok");
