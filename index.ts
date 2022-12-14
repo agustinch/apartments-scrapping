@@ -1,11 +1,12 @@
-import express from "express";
-import scrapeIt from "scrape-it";
-import nodemailer from "nodemailer";
-import { Client } from "pg";
-import format from "pg-format";
-import { restart } from "nodemon";
+import express from 'express';
+import scrapeIt from 'scrape-it';
+import nodemailer from 'nodemailer';
+import { Client } from 'pg';
+import mysql from 'mysql';
+import format from 'pg-format';
+import { restart } from 'nodemon';
 
-require("dotenv").config();
+require('dotenv').config();
 
 const connectionString = process.env.CONNECT_URI;
 const client = new Client({
@@ -15,7 +16,6 @@ const client = new Client({
   },
 });
 client.connect();
-
 const port = Number(process.env.PORT) || 3000;
 
 const app = express();
@@ -27,10 +27,10 @@ interface ScrapResult {
   id: string;
 }
 
-const scrapping = (url: string, page: number): Promise<any> => {
+const scrapping = async (url: string, page: number): Promise<any> => {
   let urlWithPage = `${url}&page=${page}`;
 
-  const list = `.clearfix > div > :nth-child(2) > div > .col-9 > :nth-child(${
+  const list = `.clearfix > div > div > div > :nth-child(2) > :nth-child(${
     page > 1 ? 1 : 3
   }) > .flex-wrap > .col-12`;
   return scrapeIt(urlWithPage, {
@@ -38,13 +38,13 @@ const scrapping = (url: string, page: number): Promise<any> => {
       listItem: `${list}`,
       data: {
         title: `.col-7 > .flex-auto > a > div`,
-        link: { selector: ".col-7 > .flex-auto > a", attr: "href" },
-        price: ".col-7 > .flex-auto > .py1 > div > p",
+        link: { selector: '.col-7 > .flex-auto > a', attr: 'href' },
+        price: '.col-7 > .flex-auto > .py1 > div > p',
         id: {
-          selector: ".col-5 > amp-state",
-          attr: "id",
-          how: "string",
-          convert: (x) => x.replace("selected_", ""),
+          selector: '.col-5 > amp-state',
+          attr: 'id',
+          how: 'string',
+          convert: (x) => x.replace('selected_', ''),
         },
       },
     },
@@ -54,7 +54,9 @@ const scrapping = (url: string, page: number): Promise<any> => {
 };
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: 'mail.comodinsoft.com',
+  secure: true,
+  port: 465,
   auth: {
     user: process.env.USER_EMAIL, // generated ethereal user
     pass: process.env.USER_PASSWORD, // generated ethereal password
@@ -62,56 +64,48 @@ const transporter = nodemailer.createTransport({
 });
 
 const main = async () => {
-  console.log("Running...");
+  console.log('Running...');
   for (let i = 1; i <= 3; i++) {
     console.log(`Página: ${i}`);
     const result = await Promise.all([
       scrapping(
-        "https://clasificados.lavoz.com.ar/inmuebles/todo?list=true&cantidad-de-dormitorios%5B0%5D=1-dormitorio&operacion=alquileres&provincia=cordoba&ciudad=cordoba&barrio%5B0%5D=general-paz",
+        'https://clasificados.lavoz.com.ar/inmuebles/departamentos/1-dormitorio?list=true&cantidad-de-dormitorios[0]=1-dormitorio&operacion=alquileres&ciudad=cordoba&tipo-de-unidad=departamento&barrio=nueva-cordoba',
         i
       ),
       scrapping(
-        "https://clasificados.lavoz.com.ar/inmuebles/todo?list=true&cantidad-de-dormitorios%5B0%5D=1-dormitorio&operacion=alquileres&provincia=cordoba&ciudad=cordoba&barrio=nueva-cordoba",
-        i
-      ),
-      scrapping(
-        "https://clasificados.lavoz.com.ar/inmuebles/todo?list=true&cantidad-de-dormitorios%5B0%5D=1-dormitorio&operacion=alquileres&provincia=cordoba&ciudad=cordoba&barrio=centro",
-        i
-      ),
-      scrapping(
-        "https://clasificados.lavoz.com.ar/inmuebles/todo?list=true&cantidad-de-dormitorios%5B0%5D=1-dormitorio&operacion=alquileres&provincia=cordoba&ciudad=cordoba&barrio=alberdi",
+        'https://clasificados.lavoz.com.ar/inmuebles/departamentos/1-dormitorio?list=true&cantidad-de-dormitorios[0]=1-dormitorio&operacion=alquileres&ciudad=cordoba&tipo-de-unidad=departamento&barrio=centro',
         i
       ),
     ]);
 
-    const deptosSaved = await client.query("SELECT id from deptos");
+    const deptosSaved = await client.query('SELECT id from deptos');
     const deptosId = deptosSaved.rows.flatMap((r) => r.id);
     const deptos: ScrapResult[] = result
       .flatMap((o) => o.deptos)
       .filter((o) => o.id && !deptosId.includes(o.id));
 
     if (deptos.length === 0) {
-      console.log("Nada nuevo.");
+      console.log('Nada nuevo.');
       continue;
     }
 
     const deptosToInsert = deptos.map((d) => [d.id, d.title, d.link]);
 
     await client.query(
-      format("INSERT INTO deptos (id, name, url) VALUES %L", deptosToInsert)
+      format('INSERT INTO deptos (id, name, url) VALUES %L', deptosToInsert)
     );
 
     const deptosList =
-      "<div>" +
+      '<div>' +
       deptos
         .map((d) => {
           return `<a href="${d.link}">${d.title}</a><br/><div>${d.price}</div>`;
         })
-        .join("") +
-      "</div>";
+        .join('') +
+      '</div>';
 
     await transporter.sendMail({
-      from: "Agu Bot", // sender address
+      from: process.env.USER_EMAIL, // sender address
       to: process.env.EMAIL_TO, // list of receivers
       subject: `${deptos.length} depto/s encontrado/s`, // Subject line
       html: deptosList, // html body
@@ -122,8 +116,8 @@ const main = async () => {
 
 setInterval(async () => await main(), 60000);
 
-app.get("/", (req, res) => {
-  res.send("Ok");
+app.get('/', (req, res) => {
+  res.send('Ok');
 });
 
 app.listen(port, () => {
