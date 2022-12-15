@@ -57,10 +57,9 @@ const main = async () => {
   const connectionString = process.env.CONNECT_URI;
   const client = new Pool({
     connectionString,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    max: 200,
     keepAlive: true,
+    idleTimeoutMillis: 72000000,
   });
   console.log('Running...');
   let deptos: ScrapResult[] = [];
