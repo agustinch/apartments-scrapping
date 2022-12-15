@@ -91,7 +91,7 @@ const main = async () => {
   }
 
   const deptosToInsert = deptos.map((d) => [d.id, d.title, d.link]);
-
+  client.connect();
   await client.query(
     format('INSERT INTO deptos (id_depto, name, url) VALUES %L', deptosToInsert)
   );
