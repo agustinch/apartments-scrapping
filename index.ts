@@ -44,7 +44,7 @@ const scrapping = async (url: string, page: number): Promise<any> => {
 };
 
 const transporter = nodemailer.createTransport({
-  host: 'mail.comodinsoft.com',
+  host: process.env.HOST_EMAIL,
   secure: true,
   port: 465,
   auth: {
@@ -58,9 +58,7 @@ const main = async () => {
   const client = new Client({
     connectionString,
     idle_in_transaction_session_timeout: 60000,
-    ssl: {
-      rejectUnauthorized: false,
-    },
+    ssl: true,
   });
   client.connect();
   console.log('Running...');
