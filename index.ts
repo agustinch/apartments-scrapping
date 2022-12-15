@@ -60,6 +60,7 @@ const main = async () => {
     max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 2000,
+    keepAlive: true,
   });
   console.log('Running...');
   let deptos: ScrapResult[] = [];
