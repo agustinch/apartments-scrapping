@@ -57,9 +57,7 @@ const main = async () => {
   const connectionString = process.env.CONNECT_URI;
   const client = new Client({
     connectionString,
-    max: 200,
     keepAlive: true,
-    idleTimeoutMillis: 72000000,
   });
   console.log('Running...');
   let deptos: ScrapResult[] = [];
