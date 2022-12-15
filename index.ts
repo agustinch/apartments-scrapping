@@ -1,7 +1,7 @@
 import express from 'express';
 import scrapeIt from 'scrape-it';
 import nodemailer from 'nodemailer';
-import { Pool } from 'pg';
+import { Client } from 'pg';
 import format from 'pg-format';
 
 require('dotenv').config();
@@ -55,7 +55,7 @@ const transporter = nodemailer.createTransport({
 
 const main = async () => {
   const connectionString = process.env.CONNECT_URI;
-  const client = new Pool({
+  const client = new Client({
     connectionString,
     max: 200,
     keepAlive: true,
@@ -63,7 +63,9 @@ const main = async () => {
   });
   console.log('Running...');
   let deptos: ScrapResult[] = [];
+  await client.connect();
   const deptosSaved = await client.query('SELECT id_depto from deptos');
+  await client.end();
   const deptosId = deptosSaved.rows.flatMap((r) => String(r.id_depto));
 
   for (let i = 1; i <= 3; i++) {
@@ -91,11 +93,11 @@ const main = async () => {
   }
 
   const deptosToInsert = deptos.map((d) => [d.id, d.title, d.link]);
-  client.connect();
+  await client.connect();
   await client.query(
     format('INSERT INTO deptos (id_depto, name, url) VALUES %L', deptosToInsert)
   );
-
+  await client.end();
   const deptosList =
     '<div>' +
     deptos
