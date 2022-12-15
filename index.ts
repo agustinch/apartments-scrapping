@@ -2,9 +2,7 @@ import express from 'express';
 import scrapeIt from 'scrape-it';
 import nodemailer from 'nodemailer';
 import { Client } from 'pg';
-import mysql from 'mysql';
 import format from 'pg-format';
-import { restart } from 'nodemon';
 
 require('dotenv').config();
 
