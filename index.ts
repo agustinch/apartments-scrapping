@@ -57,7 +57,7 @@ const main = async () => {
   const connectionString = process.env.CONNECT_URI;
   const client = new Client({
     connectionString,
-    idle_in_transaction_session_timeout: 60000,
+    idle_in_transaction_session_timeout: 100,
     ssl: true,
   });
   client.connect();
