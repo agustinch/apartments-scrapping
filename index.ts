@@ -1,7 +1,7 @@
 import express from 'express';
 import scrapeIt from 'scrape-it';
 import nodemailer from 'nodemailer';
-import { Client } from 'pg';
+import { Pool } from 'pg';
 import format from 'pg-format';
 
 require('dotenv').config();
@@ -55,13 +55,17 @@ const transporter = nodemailer.createTransport({
 
 const main = async () => {
   const connectionString = process.env.CONNECT_URI;
-  const client = new Client({
+  const client = new Pool({
     connectionString,
-    idle_in_transaction_session_timeout: 100,
-    ssl: true,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
   });
-  client.connect();
   console.log('Running...');
+  let deptos: ScrapResult[] = [];
+  const deptosSaved = await client.query('SELECT id_depto from deptos');
+  const deptosId = deptosSaved.rows.flatMap((r) => String(r.id_depto));
+
   for (let i = 1; i <= 3; i++) {
     console.log(`Página: ${i}`);
     const result = await Promise.all([
@@ -74,49 +78,41 @@ const main = async () => {
         i
       ),
     ]);
-
-    const deptosSaved = await client.query('SELECT id_depto from deptos');
-    const deptosId = deptosSaved.rows.flatMap((r) => String(r.id_depto));
-    const deptos: ScrapResult[] = result
-      .flatMap((o) => o.deptos)
-      .filter((o) => o.id && !deptosId.includes(o.id));
-
-    if (deptos.length === 0) {
-      console.log('Nada nuevo.');
-      continue;
-    }
-
-    const deptosToInsert = deptos.map((d) => [d.id, d.title, d.link]);
-
-    await client.query(
-      format(
-        'INSERT INTO deptos (id_depto, name, url) VALUES %L',
-        deptosToInsert
-      )
-    );
-
-    const deptosList =
-      '<div>' +
-      deptos
-        .map((d) => {
-          return `<a href="${d.link}">${d.title}</a><br/><div>${d.price}</div>`;
-        })
-        .join('') +
-      '</div>';
-
-    await transporter.sendMail({
-      from: process.env.USER_EMAIL, // sender address
-      to: process.env.EMAIL_TO, // list of receivers
-      subject: `${deptos.length} depto/s encontrado/s`, // Subject line
-      html: deptosList, // html body
-    });
-    console.log(`${deptos.length} deptos encontrados`);
+    const deptosResult =
+      result
+        .flatMap((o) => o.deptos)
+        .filter((o) => o.id && !deptosId.includes(o.id)) || [];
+    deptos = [...deptos, ...deptosResult];
   }
-  client.end();
-};
 
-main();
-setInterval(async () => await main(), 600000);
+  if (deptos.length === 0) {
+    console.log('Nada nuevo.');
+    return;
+  }
+
+  const deptosToInsert = deptos.map((d) => [d.id, d.title, d.link]);
+
+  await client.query(
+    format('INSERT INTO deptos (id_depto, name, url) VALUES %L', deptosToInsert)
+  );
+
+  const deptosList =
+    '<div>' +
+    deptos
+      .map((d) => {
+        return `<a href="${d.link}">${d.title}</a><br/><div>${d.price}</div>`;
+      })
+      .join('') +
+    '</div>';
+
+  await transporter.sendMail({
+    from: process.env.USER_EMAIL, // sender address
+    to: process.env.EMAIL_TO, // list of receivers
+    subject: `${deptos.length} depto/s encontrado/s`, // Subject line
+    html: deptosList, // html body
+  });
+  console.log(`${deptos.length} deptos encontrados`);
+};
 
 app.get('/', (req, res) => {
   res.send('Ok');
@@ -125,3 +121,6 @@ app.get('/', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running`);
 });
+
+main();
+setInterval(async () => await main(), 600000);
