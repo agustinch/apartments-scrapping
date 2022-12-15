@@ -76,8 +76,8 @@ const main = async () => {
       ),
     ]);
 
-    const deptosSaved = await client.query('SELECT id from deptos');
-    const deptosId = deptosSaved.rows.flatMap((r) => r.id);
+    const deptosSaved = await client.query('SELECT id_depto from deptos');
+    const deptosId = deptosSaved.rows.flatMap((r) => String(r.id_depto));
     const deptos: ScrapResult[] = result
       .flatMap((o) => o.deptos)
       .filter((o) => o.id && !deptosId.includes(o.id));
@@ -90,7 +90,10 @@ const main = async () => {
     const deptosToInsert = deptos.map((d) => [d.id, d.title, d.link]);
 
     await client.query(
-      format('INSERT INTO deptos (id, name, url) VALUES %L', deptosToInsert)
+      format(
+        'INSERT INTO deptos (id_depto, name, url) VALUES %L',
+        deptosToInsert
+      )
     );
 
     const deptosList =
@@ -112,7 +115,8 @@ const main = async () => {
   }
 };
 
-setInterval(async () => await main(), 60000);
+main();
+setInterval(async () => await main(), 600000);
 
 app.get('/', (req, res) => {
   res.send('Ok');
