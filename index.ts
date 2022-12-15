@@ -6,14 +6,6 @@ import format from 'pg-format';
 
 require('dotenv').config();
 
-const connectionString = process.env.CONNECT_URI;
-const client = new Client({
-  connectionString,
-  ssl: {
-    rejectUnauthorized: false,
-  },
-});
-client.connect();
 const port = Number(process.env.PORT) || 3000;
 
 const app = express();
@@ -62,6 +54,15 @@ const transporter = nodemailer.createTransport({
 });
 
 const main = async () => {
+  const connectionString = process.env.CONNECT_URI;
+  const client = new Client({
+    connectionString,
+    idle_in_transaction_session_timeout: 60000,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+  });
+  client.connect();
   console.log('Running...');
   for (let i = 1; i <= 3; i++) {
     console.log(`Página: ${i}`);
@@ -113,6 +114,7 @@ const main = async () => {
     });
     console.log(`${deptos.length} deptos encontrados`);
   }
+  client.end();
 };
 
 main();
